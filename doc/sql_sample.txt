@@ -1,0 +1,40 @@
+CREATE TABLE players (
+  id INT NOT NULL PRIMARY KEY,
+  name VARCHAR(32),
+  level INT,
+  job_id INT
+);
+
+CREATE TABLE jobs (
+  id INT NOT NULL PRIMARY KEY,
+  job_name VARCHAR(10),
+  vitality INT,
+  strength INT,
+  agility INT,
+  intelligence INT,
+  luck INT
+);
+
+INSERT
+  INTO players(id,name,level,job_id)
+  VALUES
+    (1,"パイザ",12,6),
+    (2,"ケン",7,2),
+    (3,"リン",1,1),
+    (4,"ユウ",3,3),
+    (5,"クレア",10,4),
+    (6,"ショウ",5,2),
+    (7,"さくら",7,1),
+    (8,"ジャック",5,4),
+    (9,"ロック",12,6),
+    (10,"じゅん",1,NULL);
+
+INSERT
+  INTO jobs(id, job_name, vitality, strength, agility, intelligence, luck)
+  VALUES
+    (1,"戦士",8,8,4,4,3),
+    (2,"盗賊",3,3,8,5,7),
+    (3,"狩人",5,5,7,5,4),
+    (4,"魔法使い",3,2,6,8,6),
+    (5,"僧侶",5,5,3,7,5),
+    (6,"勇者",10,10,10,10,10);
