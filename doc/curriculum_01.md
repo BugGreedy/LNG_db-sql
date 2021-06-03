@@ -1,9 +1,11 @@
 ## SQL入門編1: SQLの基本文法を学ぶ
 
 ### 目次
-[1-1_データベースを知ろう](#1−1_データベースを知ろう)
-[1-2_データベースを準備しよう](#1-2_データベースを準備しよう)
-[1-3_テーブルの中身を見てみよう](#1-3_テーブルの中身を見てみよう)
+[1-1_データベースを知ろう](#1−1_データベースを知ろう)</br>
+[1-2_データベースを準備しよう](#1-2_データベースを準備しよう)</br>
+[1-3_テーブルの中身を見てみよう](#1-3_テーブルの中身を見てみよう)</br>
+[1-4_いろいろな情報を取り出そう](#1-4_いろいろな情報を取り出そう)</br>
+[1-5_データを追加・更新・削除しよう](#1-5_データを追加・更新・削除しよう)</br>
 
 ***
 
@@ -115,6 +117,179 @@ MySQLとphpMyAdminを使って基本的なデータベースを作成してい�
    - `*`の箇所は本来はカラムを指定する箇所。`*`は全てのカラムという意味のもの。(ワイルドカード)
     - 備考:[ワイルドカード](https://wa3.i-3-i.info/word11613.html)
    - `FROM`は対象となるテーブルを指定している。
+  </br>
+   **SQL文**について
+   - 基本的に命令文は大文字でかく。テーブル名などは作成時のものを使用するが、小文字で書く場合が多い。
    - 命令の最後に`;`を記述する。
+   - `--`でコメントを記載できる。`--`のあとには**スペースが必要なので注意。**
 </br>
 
+2. 一部のカラムだけ取得する。</br>
+   次にplayersテーブルのnameとlevelのみ取り出すSQL文を記述する。
+   ```sql
+   -- 一部のカラムだけ取り出す
+   SELECT name,level FROM players; 
+   ```
+   これでplayersテーブルの全てのレコードのnameとlevelカラムだけ表示できる。
+</br>
+
+3. 一部の行だけ取得する。</br>
+   次にlevelが7以上のレコードのみを取り出すSQL文を記述する。
+   ```sql
+   -- 一部の行/レコードのみを取り出す
+   SELECT * FROM players WHERE level >= 7;
+   ```
+   これで条件に合ったレコードのみ取得することができる。</br>
+   `WHERE 条件`でその条件に合ったものだけを指定できる。</br>
+   - `WHERE`の条件指定
+     一般の比較演算子の記号が使える。</br>
+     また、`a <> b`で**aとbが等しくないとき**という条件の設定が可能。</br>
+     例：
+     ```sql
+     -- 勇者以外のジョブを取得する。
+     SELECT * FROM players WHERE job_id <> 6;
+      ```
+      これで勇者(job_id = 6)以外を取得できる。</br>
+      </br>
+      また、`AND`や`OR`を用いることで複数の条件を組み合わせることもできる。
+      例：
+      ```sql
+      -- 勇者以外でレベルが7以上のプレイヤーの、名前とレベルだけを取得する。
+      SELECT name,level FROM players WHERE level >= 7 AND job_id <> 6;
+
+</br>
+
+***
+
+### 1-4_いろいろな情報を取り出そう
+今回は次のような内容を実行する。
+1. データ件数を表示する
+2. 条件に合ったデータの件数を表示する
+3. 並び替える
+4. 上位3件だけを表示する
+5. 職業ごとの人数を調べる
+</br>
+
+1. データ件数を表示する
+   ```sql
+   SELECT COUNT(*) FROM players;
+   ```
+   ↓出力結果
+   ```sql
+   COUNT(*)
+   10
+   ```
+</br>
+
+2. 条件に合ったデータの件数を表示する
+   ```sql
+   -- jobが勇者の数を調べる
+   SELECT COUNT(*) FROM players WHERE job_id = 6;
+   ```
+   ↓出力結果
+   ```sql
+   COUNT(*)
+   2
+   ```
+</br>
+
+3. 並び替える
+   ```sql
+   -- データをそのカラムに基づいて並び替える
+   SELECT * FROM players ORDER BY level; 
+    ```
+    - `ORDER BY カラム名`でカラム名の昇順に並び替える。</br>
+      また、降順(大きい順)にする場合はカラム名の後に`DESC`を追記する。(DESC:descending(下り)の略)</br>
+    例：
+    ```sql
+    SELECT * FROM players ORDER BY level DESC;
+    ```
+</br>
+
+4. 上位3件だけを表示する</br>
+   ```sql
+   -- levelが高い順に3件表示
+   SELECT * FROM players ORDER BY level DESC LIMIT 3;
+   ```
+   - `LIMIT`はリミット命令という。表示する数を指定する。</br>
+
+5. 職業ごとの人数を調べる</br>
+   ```sql
+   -- グループ化を用いて、職業ごとの人数を集計する。
+   SELECT job_id, COUNT(*) FROM players GROUP BY job_id;
+   ```
+   - `GROUP BY` 指定のカラムをまとめる。</br>
+</br>
+
+***
+
+### 1-5_データを追加・更新・削除しよう
+1. データを追加する
+2. 一度に複数のデータを追加する
+3. データを更新する
+4. データを削除する
+5. 条件に合ったデータを削除する
+</br>
+
+1. データを追加する</br>
+   ```sql
+    -- playerテーブルにデータを追加する
+    INSERT INTO players(id,name,level,job_id)VALUES(11,"モグラ1号",1,1);
+    ```
+    これでデータが追加される。</br>
+    - `INSERT INTO 追加先のテーブル(id,カラム)VALUES(id,カラムに入れるvalue);`</br>
+      ここでidが既存のものだとエラーが生じてデータを挿入できない。</br>
+    </br>
+    次にデータの挿入と表示を同時に行ってみる。
+    ```sql
+    INSERT INTO players(id,name,level,job_id)VALUES(12,"モグラ2号",1,1);
+    SELECT * FROM players;
+    ```
+    このようにSQL文は一度の入力で複数のSQLを実行できる。</br>
+</br>
+
+2. 一度に複数のデータを追加する
+   ```sql
+   INSERT INTO players(id,name,level,job_id)
+   VALUES
+    (13,"モグラ3号”,1,1,),
+    (14,"モグラ4号”,1,1,)
+   ;
+   SELECT * FROM players;
+   ```
+</br>
+
+3. データを更新する</br>
+   すでに記録されているデータの値を上書きして更新する</br>
+   ```sql
+   UPDATE players SET level = 10 WHERE id = 11;
+   SELECT * FROM players;
+   ```
+   これでモグラ1号のlevelが10になった。</br>
+   - `UPDATE テーブル名 SET 更新する内容 WHERE 更新する対象;`</br>
+   また、下記のような対象に何か加えるというような更新の仕方も可能。
+   ```sql
+   UPDATE players SET level = level + 1 WHERE id = 12;
+   SELECT * FROM players;
+   ```
+   これでモグラ2号のlevelが2になった。</br>
+</br>
+
+4. データを削除する
+   ```sql
+   DELETE FROM players WHERE id = 12;
+   SELECT * FROM players;
+   ```
+</br>
+
+5. 条件に合ったデータを削除する</br>
+   `id=11`以上のデータを削除する。</br>
+   ```sql
+   DELETE FROM players WHERE id >= 11;
+   SELECT * FROM players;
+   ```
+</br>
+
+***
+
+### 1-6_
