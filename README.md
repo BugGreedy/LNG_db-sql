@@ -6,3 +6,4 @@
 
 ### 目次
 [SQL入門編1: SQLの基本文法を学ぶ](/doc/curriculum_01.md)</br>
+[SQL入門編2: SQLを仕事に使おう](/doc/curriculum_02.md)</br>
