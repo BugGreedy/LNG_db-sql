@@ -5,6 +5,8 @@
 [2-2_SQLの書き方のポイント](#2-2_SQLの書き方のポイント)</br>
 [2-3_ログ解析してみよう](#2-3_ログ解析してみよう)</br>
 [2-4_アクティブユーザーを調べよう](#2-4_アクティブユーザーを調べよう)</br>
+[2-5_データを集計しよう](#2-5_データを集計しよう)</br>
+[2-6_ユーザーの年齢を計算をしよう](#2-6_ユーザーの年齢を計算をしよう)</br>
 </br>
 
 ***
@@ -120,9 +122,8 @@ SELECT DATE(startTime),logID FROM eventlog;
 </br>
 
 - 退会したユーザーを計測する</br>
-  仮に退会したタイミングを記録する`deletedTime`のようなカラムがあった際、現在のアクティブユーザーのレコードには`null`が入っている。つまりこのカラムには何もない状態になっている。</br>
+  仮に退会したタイミングを記録する`deleted_at`のようなカラムがあった際、現在のアクティブユーザーのレコードには`null`が入っている。つまりこのカラムには何もない状態になっている。</br>
   退会ユーザー数を計測する際はテーブルからこの`null`のレコードを取り除いた数を集計する。</br>
-  - `deleted_at 取り除く対象`：取り除く対象を取り除く。
   - `IS NULL`：空のカラム。
   ```sql
   SELECT COUNT(*) AS アクティブユーザー数
@@ -131,5 +132,114 @@ SELECT DATE(startTime),logID FROM eventlog;
   ```
 </br>
 
+- イベントログに記録があるユーザーだけを調べる。
+  上記の"退会したユーザー数"からの算出でアクティブユーザーを割り出すと登録はしたがプレイはしていない幽霊ユーザー数がカウントされてしまう。</br>
+  そこでイベントログに記録があるユーザーだけを計測し、アクティブユーザー数を調べる。</br>
+  </br>
+  まずイベントログにあるユーザーIDを重複なしで計測する。
+  ```sql
+  SELECT DISTINCT userID AS アクティブユーザー
+  FROM eventlog;
+  ```
+  - `DISTINCT`:重複したデータを除外する。
+  </br>
 
+  これを用いてユーザー先ほどのNULLを取り除く記述と合わせて計測してみる。
+  ```sql
+  SELECT COUNT(DISTINCT userID) AS アクティブユーザー
+  FROM eventlog;
+    INNER JOIN users ON users.userID = eventlog.userID
+  WHERE deleted_at IS NULL;
+  ```
 
+- 日毎のアクティブユーザー数を計測する。
+  ```sql
+  SELECT
+    DATE(eventlog.startTime) AS 日付,
+    COUNT(DISTINCT eventlog.userID) AS アクティブユーザー
+  FROM eventlog
+    INNER JOIN users ON users.userID = eventlog.userID
+  WHERE deleted_at IS NULL
+  GROUP BY DATE(eventlog.startTime);
+  ```
+</br>
+
+***
+
+### 2-5_データを集計しよう
+- sql上で集計(合算)をする</br>
+  ```sql
+  SELECT
+  	eventlog.userID AS ユーザーID,
+  	SUM(events.increase_exp) AS 獲得経験値合計
+  FROM
+  	eventlog
+  	INNER JOIN events ON events.eventID = eventlog.eventID
+  GROUP BY eventlog.userID;
+  ```
+  - `SUM()`で対象を和算できる。
+</br>
+
+- 平均を求める。</br>
+  ```sql
+  SELECT
+  	eventlog.userID AS ユーザーID,
+  	SUM(events.increase_exp) AS 獲得経験値合計,
+  	AVG(events.increase_exp) AS 獲得経験値平均
+  FROM
+  	eventlog
+  	INNER JOIN events ON events.eventID = eventlog.eventID
+  GROUP BY eventlog.userID; 
+  ```
+  - `AVG()`:平均を求める。
+</br>
+
+- 集計結果から表示するデータを指定する。
+  ```sql
+  -- 獲得合計値が3000以上のレコードのみ表示
+  SELECT
+  	eventlog.userID AS ユーザーID,
+  	SUM(events.increase_exp) AS 獲得経験値合計,
+  	AVG(events.increase_exp) AS 獲得経験値平均
+  FROM
+  	eventlog
+  	INNER JOIN events ON events.eventID = eventlog.eventID
+  GROUP BY eventlog.userID
+  HAVING SUM(events.increase_exp) >= 3000;
+  ```
+  - `HAVING`: GROUP BYのあとでも記述できる条件追加。WHEREだとGROUP BYの前に記述しないと行けないので本件では使えない。</br>
+    - ※`HAVING`と`ORDER BY`が両方ある場合は`HAVING`を先に記述する。</br>
+      例：
+      ```sql
+      GROUP BY eventlog.userID
+      HAVING SUM(events.increase_gold) >= 50
+      ORDER BY eventlog.userID;
+      ```
+</br>
+
+**SQLの動作の流れ**</br>
+1. FROM      対象テーブルからデータを取り出す
+2. WHERE     条件に一致するレコードを読み込み
+3. GROUP BY  グループ化
+4. HAVING    集計結果から絞り込み
+5. SELECT    指定したカラムだけを表示</br>
+</br>
+
+- ユーザーごとのプレイ開始日と終了日を調べてみる</br>
+  各ユーザーの各プレイごとのログイン時間(startTime)とログアウト時間(endTime)が記録されている。</br>
+  この場合求めるのは"最初(最小日時)のログイン時間" と"最後(最大日時)のログアウト時間"である。
+  ```sql
+  SELECT
+  	eventlog.userID AS ユーザーID,
+  	MIN(startTime) AS 開始日,
+  	MAX(endTime) AS 終了日
+  FROM
+  	eventlog
+  GROUP BY eventlog.userID ORDER BY userID;  -- グループ化後でも並び替えできる。
+  ```
+  - `MIN()`：指定カラムの最小を求める
+  - `MAX()`：指定カラムの最大値を求める
+
+***
+
+### 2-6_ユーザーの年齢を計算をしよう
