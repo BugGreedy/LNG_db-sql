@@ -7,6 +7,7 @@
 [2-4_アクティブユーザーを調べよう](#2-4_アクティブユーザーを調べよう)</br>
 [2-5_データを集計しよう](#2-5_データを集計しよう)</br>
 [2-6_ユーザーの年齢を計算をしよう](#2-6_ユーザーの年齢を計算をしよう)</br>
+[2-7_テキストを検索しよう](#2-7_テキストを検索しよう)</br>
 </br>
 
 ***
@@ -243,3 +244,63 @@ SELECT DATE(startTime),logID FROM eventlog;
 ***
 
 ### 2-6_ユーザーの年齢を計算をしよう
+SQLにおいて四則演算を使用できる。</br>
+例：プレイ期間を計測する。
+```sql
+SELECT
+	userID AS ユーザーID,
+	MIN(startTime) AS 開始日,
+	MAX(endTime) AS 終了日,
+	DATE(MAX(endTime)) - DATE(MIN(startTime)) + 1 AS プレイ期間(日数)
+FROM
+	eventlog
+GROUP BY userID;
+```
+</br>
+次にユーザーの年例を調べてみる。</br>
+
+まずユーザーの生年月日を調べる。
+```sql
+SELECT
+	userID AS ユーザーID,
+    birth AS 生年月日
+FROM
+	users;
+```
+現在の年数から取得した生年月日を引き、年齢を調べる。</br>
+- `YEAR()`：引数の年数を取得する。</br>
+- `CURRENT_DATE()`：現在の日時を取得する。</br>
+```sql
+SELECT
+	userID AS ユーザーID,
+	YEAR(CURRENT_DATE()) AS 現在年,
+    birth AS 生年月日,
+    YEAR(CURRENT_DATE()) - YEAR(birth) AS 数え年
+FROM
+	users;
+```
+ただし、これでは数え年なので満年齢がわからない。</br>
+ここで用いるのが`TIMESTAMPDIFF関数`
+- `TIMESTAMPDIFF(引数1,時間1,時間2)`:時間1と時間2の差を引数1の単位(YEAR/DATE/MONTH/HOURなど)を取得する。
+```sql
+SELECT
+	userID AS ユーザーID,
+	YEAR(CURRENT_DATE()) AS 現在年,
+  birth AS 生年月日,
+  YEAR(CURRENT_DATE()) - YEAR(birth) AS 数え年,
+  TIMESTAMPDIFF(YEAR,birth,CURRENT_DATE()) AS 満年齢
+FROM
+	users;
+```
+↓出力結果
+```
+ユーザーID	現在年	生年月日	数え年	満年齢
+1	2021	1995-04-03	26	26
+2	2021	1980-10-19	41	40
+3	2021	1978-04-21	43	43
+4	2021	1980-10-02	41	40
+```
+
+***
+
+### 2-7_テキストを検索しよう
