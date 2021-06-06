@@ -9,6 +9,9 @@
 [2-6_ユーザーの年齢を計算をしよう](#2-6_ユーザーの年齢を計算をしよう)</br>
 [2-7_テキストを検索しよう](#2-7_テキストを検索しよう)</br>
 [2-8_サブクエリでアクティブユーザー数を求めよう](#2-8_サブクエリでアクティブユーザー数を求めよう)</br>
+[2-9_グループ分けしよう](#2-9_グループ分けしよう)</br>
+[2-10_クロス集計してみよう](#2-10_クロス集計してみよう)</br>
+[2-11_サブクエリで、平均や割合を求めよう](#2-11_サブクエリで、平均や割合を求めよう)</br>
 </br>
 
 ***
@@ -240,7 +243,9 @@ SELECT DATE(startTime),logID FROM eventlog;
   GROUP BY eventlog.userID ORDER BY userID;  -- グループ化後でも並び替えできる。
   ```
   - `MIN()`：指定カラムの最小を求める
-  - `MAX()`：指定カラムの最大値を求める
+  - `MAX()`：指定カラムの最大値を求める</br>
+</br>
+
 
 ***
 
@@ -301,6 +306,7 @@ FROM
 3	2021	1978-04-21	43	43
 4	2021	1980-10-02	41	40
 ```
+</br>
 
 ***
 
@@ -374,4 +380,190 @@ userID	startTime	event_summary	event_url
 **サブクエリとは**
 - SQLを実行した結果をまた別のSQLと組み合わせる機能。</br>
 - サブクエリでは、クエリの出力結果をFROMに指定できる。</br>
+```sql
+SELECT day, COUNT(user)
+FROM (SELECT  DISTINCT           -- FROM(sql)でsqlの結果を利用できる。
+	DATE(startTime) AS day,
+	eventlog.userID AS user
+FROM eventlog
+	INNER JOIN users ON users.userID = eventlog.userID
+WHERE deleted_at IS NULL) AS ActiveUsers  -- ここでAS~と付けないとエラーになる。
+GROUP BY day;
+```
+</br>
+
+***
+
+### 2-9_グループ分けしよう
+SQLの**CASE命令**</br>
+- 条件に合わせて出力内容を変える。</br>
+  プログラミングのif文に似ている。
+  ```sql
+  -- CASEの基本形
+  SELECT
+  	userID,
+  	level,
+  	CASE
+  		WHEN (条件式1) THEN (出力1)
+  		WHEN (条件式2) THEN (出力2)
+  		ElSE (出力3)
+  	END
+  FROM
+  	users
+  ```
+ </br>
+
+では、ユーザーをレベルに合わせて、クラス分けをしてみる。
+```sql
+-- レベル4以上を'上級'、レベル2以上を'中級'、それ以外を'初級'とする。
+SELECT
+	userID,level,
+    CASE
+        WHEN level >= 4 THEN '上級'
+        WHEN level >= 2 THEN '中級'
+        ELSE '初級'
+    END AS クラス
+FROM
+	users;
+```
+↓出力結果
+```
+userID	level	クラス
+1	0	初級
+2	5	上級
+3	1	初級
+4	4	上級
+5	0	初級
+6	3	中級
+7	1	初級
+8	3	中級
+9	1	初級
+10	1	初級
+11	0	初級
+12	3	中級
+13	1	初級
+14	3	中級
+```
+</br>
+
+**注意**</br>
+ただし、この時`WHEN level >=2`を`WHEN level >=4`の前に記述してしまうと上級が表示されなくなってしまう。</br>
+これはCASE文が上から実行されるからである。</br>
+例：
+```sql
+userID	level	クラス
+1	0	初級
+2	5	中級  -- userID=2がレベル5なのに'中級'として出力されている。
+3	1	初級
+4	4	中級
+5	0	初級
+6	3	中級
+7	1	初級
+8	3	中級
+```
+</br>
+
+次に、これらのクラスごとの人数を集計してみる。
+```sql
+SELECT
+    CASE
+        WHEN level >= 2 THEN '中級'
+        WHEN level >= 4 THEN '上級'
+        ELSE '初級'
+    END AS クラス,
+    COUNT(*) AS ユーザー数
+	
+FROM
+	users
+GROUP BY クラス;
+```
+↓出力結果
+```sql
+クラス	ユーザー数
+初級	60
+中級	40
+```
+</br>
+
+***
+
+### 2-10_クロス集計してみよう
+通常のビューでは集計結果が共通のカラム構成で縦に並ぶ。例：イベント開始日/userID/クラス</br>
+これに対してサブクエリを用いて、集計結果を縦横に並ぶビューを**クロス集計**という。</br>
+- クロス集計表を作る手順
+  1. クロス集計の元になるデータを用意する
+  2. サブクエリを読み込む
+  3. CASEで、特定の値だったら1にする。このときASで指定する別名(カラム名)を特定の値と同じにする
+     - 例：CASE WHEN クラス = '初級' THEN 1 ELSE 0 END AS 初級
+
+では、クロス集計をする前の手順を実行する。
+```sql
+SELECT
+    日付,
+    ユーザー,
+    クラス,
+    CASE WHEN クラス = '初級' THEN 1 ELSE 0 END AS 初級,
+    CASE WHEN クラス = '中級' THEN 1 ELSE 0 END AS 中級,
+    CASE WHEN クラス = '上級' THEN 1 ELSE 0 END AS 上級
+FROM(SELECT DISTINCT
+	DATE_FORMAT(startTime,'%Y-%m') AS 日付,
+	eventlog.userID AS ユーザー,
+	CASE
+	    WHEN users.level >= 4 THEN '上級'
+	    WHEN users.level >= 2 THEN '中級'
+	    ELSE '初級'
+	END AS クラス
+FROM eventlog
+	INNER JOIN users ON users.userID = eventlog.userID)
+	AS  クラス分け;
+```
+↓出力結果
+```
+日付	ユーザー	クラス	初級	中級	上級
+2015-02	1	初級	1	0	0
+2015-02	3	初級	1	0	0
+2015-02	2	上級	0	0	1
+2015-02	4	上級	0	0	1
+2015-02	5	初級	1	0	0
+2015-02	6	中級	0	1	0
+2015-02	8	中級	0	1	0
+2015-02	7	初級	1	0	0
+2015-02	9	初級	1	0	0
+2015-02	10	初級	1	0	0
+2015-03	11	初級	1	0	0
+2015-03	12	中級	0	1	0
+```
+これで各クラスに対するカラムを追加できた。</br>
+あとはこのクラスごとのカラムを集計して日付ごとにグループ化を行う。
+```sql
+SELECT
+    日付,
+    SUM(CASE WHEN クラス = '初級' THEN 1 ELSE 0 END) AS 初級,
+    SUM(CASE WHEN クラス = '中級' THEN 1 ELSE 0 END) AS 中級,
+    SUM(CASE WHEN クラス = '上級' THEN 1 ELSE 0 END) AS 上級
+FROM(SELECT DISTINCT
+	DATE_FORMAT(startTime,'%Y-%m') AS 日付,
+	eventlog.userID AS ユーザー,
+	CASE
+	    WHEN users.level >= 4 THEN '上級'
+	    WHEN users.level >= 2 THEN '中級'
+	    ELSE '初級'
+	END AS クラス
+FROM eventlog
+	INNER JOIN users ON users.userID = eventlog.userID)
+	AS  クラス分け
+GROUP BY 日付;
+```
+↓出力結果
+```
+日付	初級	中級	上級
+2015-02	6	2	2
+2015-03	10	8	1
+2015-04	10	8	0
+```
+</br>
+
+***
+
+### 2-11_サブクエリで、平均や割合を求めよう 
 
