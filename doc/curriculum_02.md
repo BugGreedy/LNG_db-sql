@@ -566,4 +566,85 @@ GROUP BY 日付;
 ***
 
 ### 2-11_サブクエリで、平均や割合を求めよう 
+今回は平均やそれ以上の割合を求めてみる。</br>
+まず、平均レベルを調べる。
+```sql
+SELECT AVG(level) AS 平均レベル FROM users;
+
+SELECT userID, name, level
+FROM users
+WHERE level >= 4;
+```
+↓出力結果
+```
+平均レベル
+1.6300
+userID	name	level
+2	シュン	5
+4	さゆり	4
+```
+</br>
+
+次に算出した平均以上のユーザーを表示する。
+```sql
+SELECT AVG(level) AS 平均レベル FROM users;
+
+SELECT userID, name, level
+FROM users
+WHERE level >= (SELECT AVG(level) AS 平均レベル FROM users);   -- 上記の平均を算出した式をWHEREに記述
+```
+↓出力結果
+```
+平均レベル
+1.6300
+userID	name	level
+2	シュン	5
+4	さゆり	4
+6	サキ	3
+8	けんぞう	3
+12	しゅんじ	3
+14	ソウタ	3
+...
+```
+</br>
+
+次に平均以上のユーザー数を算出する。
+```sql
+SELECT AVG(level) AS 平均レベル FROM users;
+
+SELECT COUNT(userID) AS 平均以上のユーザー数
+FROM users
+WHERE level >= (SELECT AVG(level) AS 平均レベル FROM users);
+```
+↓出力結果
+```
+平均レベル
+1.6300
+平均以上のユーザー数
+40
+```
+</br>
+
+次に平均以上のユーザー数の割合を求める。</br>
+まず全体の数を求め、それを元に算出する。
+```sql
+SELECT AVG(level) AS 平均レベル FROM users;
+
+SELECT  
+    COUNT(userID) AS 平均以上のユーザー数,                   
+    (SELECT COUNT(*) FROM users ) AS 全体のユーザー数,               -- ※1
+    COUNT(userID) / (SELECT COUNT(*) FROM users) *100 AS 割合
+FROM users
+WHERE level >= (SELECT AVG(level) AS 平均レベル FROM users);
+```
+↓出力結果
+```
+平均レベル
+1.6300
+平均以上のユーザー数	全体のユーザー数	割合
+40	100	40.0000
+```
+**※1**：SELECT内に直接SQL文を代入する事ができる。</br>
+</br>
+
 
