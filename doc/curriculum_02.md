@@ -8,6 +8,7 @@
 [2-5_データを集計しよう](#2-5_データを集計しよう)</br>
 [2-6_ユーザーの年齢を計算をしよう](#2-6_ユーザーの年齢を計算をしよう)</br>
 [2-7_テキストを検索しよう](#2-7_テキストを検索しよう)</br>
+[2-8_サブクエリでアクティブユーザー数を求めよう](#2-8_サブクエリでアクティブユーザー数を求めよう)</br>
 </br>
 
 ***
@@ -280,7 +281,7 @@ FROM
 	users;
 ```
 ただし、これでは数え年なので満年齢がわからない。</br>
-ここで用いるのが`TIMESTAMPDIFF関数`
+ここで用いるのが**TIMESTAMPDIFF関数**である。
 - `TIMESTAMPDIFF(引数1,時間1,時間2)`:時間1と時間2の差を引数1の単位(YEAR/DATE/MONTH/HOURなど)を取得する。
 ```sql
 SELECT
@@ -304,3 +305,73 @@ FROM
 ***
 
 ### 2-7_テキストを検索しよう
+SQL内でテキストの検索を行う際は**LIKE命令**
+- `WHERE user.user_name LIKE '%マン'`：user.user_nameの中から"○○マン"というレコードだけ取得する。
+```sql
+-- 「○○との闘い」のみを取得する。
+SELECT
+	userID,
+	startTime,
+	events.event_summary
+FROM
+	eventlog
+	INNER JOIN events ON events.eventID = eventlog.eventID
+WHERE events.event_stage <> 0
+    AND events.event_summary LIKE '%との闘い'
+ORDER BY
+    userID, startTime;
+```
+備考：`LIKE '%との闘い'`の`%`はワイルドカード。</br>
+↓出力結果
+```
+userID	startTime	event_summary
+2	2015-02-01 23:21:07	亡霊との闘い
+2	2015-02-02 22:00:02	亡霊との闘い
+2	2015-02-09 21:41:02	ダダメシとの闘い
+2	2015-02-09 21:41:02	ザウルスとの闘い
+2	2015-02-09 22:03:02	ズッポシとの闘い
+2	2015-02-10 18:00:02	ズッポシとの闘い
+2	2015-02-11 18:00:02	ズッポシとの闘い
+2	2015-02-17 21:00:01	ズッポシとの闘い
+```
+</br>
+
+次はそのイベントのURLを検索してみる。</br>
+```sql
+SELECT
+	userID,
+	startTime,
+	events.event_summary,
+	events.event_url
+FROM
+	eventlog
+	INNER JOIN events ON events.eventID = eventlog.eventID
+WHERE events.event_stage <> 0
+    AND events.event_url LIKE '%dungeon%'
+ORDER BY
+    userID, startTime;
+```
+↓出力結果 ("dungeon"が含まれるURLのみ取得)
+```
+userID	startTime	event_summary	event_url
+2	2015-02-01 22:53:08	パイザの洞窟	rpg/paiza/1/dungeon_0
+2	2015-02-02 23:18:02	ダマスのほこら	rpg/paiza/2/dungeon_0
+2	2015-02-09 21:18:02	ダダロスの廃城	rpg/paiza/2/dungeon_1
+2	2015-02-09 21:55:02	ザッパスの洞窟	rpg/paiza/3/dungeon_0
+2	2015-02-17 21:00:01	ダガナログの洞窟	rpg/paiza/4/dungeon_1
+2	2015-02-17 21:46:01	ダガナの鉱山	rpg/paiza/4/dungeon_0
+2	2015-02-17 22:46:01	ダガナログの洞窟	rpg/paiza/4/dungeon_1
+4	2015-02-01 23:53:07	パイザの洞窟	rpg/paiza/1/dungeon_0
+4	2015-02-09 21:18:02	ダダロスの廃城	rpg/paiza/2/dungeon_1
+4	2015-03-02 22:24:02	ザッパスの洞窟	rpg/paiza/3/dungeon_0
+4	2015-03-02 23:02:02	ダガナの鉱山	rpg/paiza/4/dungeon_0
+```
+</br>
+
+***
+
+### 2-8_サブクエリでアクティブユーザー数を求めよう
+**サブクエリとは**
+- SQLを実行した結果をまた別のSQLと組み合わせる機能。</br>
+- サブクエリでは、クエリの出力結果をFROMに指定できる。</br>
+
